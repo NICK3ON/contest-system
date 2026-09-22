@@ -2,6 +2,7 @@ const express = require('express');
 const { z } = require('zod');
 const { listContests, getContest, createContest, updateContest, deleteContest } = require('../controllers/contest.controller');
 const { listQuestions, createQuestion } = require('../controllers/question.controller');
+const { joinContest } = require('../controllers/participation.controller');
 const authenticate = require('../middleware/auth.middleware');
 const authorize = require('../middleware/role.middleware');
 const validate = require('../middleware/validate.middleware');
@@ -46,6 +47,7 @@ router.get('/:id', getContest);
 router.post('/', authenticate, authorize('ADMIN'), validate(contestCreateSchema), createContest);
 router.patch('/:id', authenticate, authorize('ADMIN'), validate(contestUpdateSchema), updateContest);
 router.delete('/:id', authenticate, authorize('ADMIN'), deleteContest);
+router.post('/:id/join', authenticate, joinContest);
 router.get('/:id/questions', authenticate, listQuestions);
 router.post('/:id/questions', authenticate, authorize('ADMIN'), validate(questionSchema), createQuestion);
 

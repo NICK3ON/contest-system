@@ -1,6 +1,6 @@
 # Contest Participation System
 
-A JavaScript/Express backend for the Contest Participation System take-home assessment. This repository currently implements **Phases 1 and 2**: application foundation plus JWT authentication, password hashing, and RBAC middleware.
+A JavaScript/Express backend for the Contest Participation System take-home assessment. This repository currently implements **Phases 1 through 4**, including authentication, contest/question management, and concurrency-safe participation and scoring.
 
 ## Prerequisites
 
@@ -35,6 +35,12 @@ A JavaScript/Express backend for the Contest Participation System take-home asse
    npm run dev
    ```
 
+Run unit tests with `npm test`. With the local PostgreSQL service migrated and seeded, run the database-backed participation/concurrency test in PowerShell with:
+
+```powershell
+$env:RUN_INTEGRATION_TESTS='1'; npm test -- --detectOpenHandles
+```
+
 `GET /health` returns `{ "status": "ok" }`.
 
 ## Authentication
@@ -66,4 +72,11 @@ The included seed creates an admin account for local development only: `admin@ex
 - `POST /api/contests/:id/questions` is restricted to `ADMIN` and validates each supported question type and its options.
 - `GET /api/contests/:id/questions` requires an eligible authenticated participant: `USER` for normal contests and `VIP` for normal/VIP contests. Admins do not receive participant questions. Correct-option flags and explanations are not exposed.
 
-Phases 4 onward are intentionally not implemented yet: participation/scoring, leaderboards, prizes, and Gemini functionality remain out of scope until requested.
+## Participation and scoring
+
+- `POST /api/contests/:id/join` joins an active contest once. Admins cannot participate; users are restricted by contest access level.
+- `PUT /api/participations/:participationId/answers/:questionId` accepts `{ "selectedOptionIds": [...] }`, validates option ownership, and saves an answer with server time.
+- `POST /api/participations/:participationId/submit` finalizes and scores the participation. Submission remains available after the deadline, but only answers saved by the deadline count.
+- Scoring awards one point for an exact correct selection and zero otherwise. Submission and answer updates lock the participation row so they cannot race each other or finalize twice.
+
+Phases 5 onward are intentionally not implemented yet: leaderboards, user history, prizes, Gemini functionality, and final security/documentation work remain out of scope until requested.

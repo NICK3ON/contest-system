@@ -10,7 +10,6 @@
 
 ## Remaining phases
 
-4. Participation, answer saving, expiry handling, scoring, and safe concurrent submission.
 5. Leaderboards, user history, and idempotent prize finalization.
 6. Gemini natural-language search and validated question generation.
 7. Endpoint-level rate-limit application, security review, comprehensive tests, Postman examples, and final documentation.
@@ -27,3 +26,11 @@
 - Admin-only contest CRUD and manual question creation
 - Validated single-select, multi-select, and true/false questions with unique option text
 - Protected participant question retrieval with contest access-level enforcement and no correct-answer fields
+
+## Phase 4 - complete
+
+- Active-contest joining with role/access enforcement and one participation per user/contest
+- Individually saved answers with server timestamps, option ownership checks, and deadline enforcement
+- Exact-set scoring for all question types with no negative marking
+- Transactional final submission using a PostgreSQL row lock to prevent duplicate/concurrent finalization
+- Late submission support that scores only answers saved on or before the contest deadline

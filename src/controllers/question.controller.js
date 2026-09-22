@@ -9,9 +9,18 @@ const participantQuestionSelect = {
 };
 
 const listQuestions = asyncHandler(async (req, res) => {
-  const contest = await prisma.contest.findUnique({ where: { id: req.params.id }, select: { id: true, accessLevel: true } });
+  const contest = await prisma.contest.findUnique({
+    where: { id: req.params.id }, select: { id: true, accessLevel: true, startTime: true, endTime: true },
+  });
   if (!contest) throw new ApiError(404, 'Contest not found');
   ensureQuestionAccess(req.user, contest);
+  const now = new Date();
+  if (now < contest.startTime || now >= contest.endTime) throw new ApiError(409, 'Contest is not active');
+  const participation = await prisma.participation.findUnique({
+    where: { userId_contestId: { userId: req.user.id, contestId: contest.id } }, select: { status: true },
+  });
+  if (!participation) throw new ApiError(403, 'Join this contest before viewing its questions');
+  if (participation.status !== 'IN_PROGRESS') throw new ApiError(409, 'This participation has already been submitted');
   const questions = await prisma.question.findMany({
     where: { contestId: contest.id }, select: participantQuestionSelect, orderBy: { createdAt: 'asc' },
   });

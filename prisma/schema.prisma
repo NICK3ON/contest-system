@@ -122,7 +122,7 @@ model Answer {
   answeredAt      DateTime      @default(now())
   createdAt       DateTime      @default(now())
   participation   Participation @relation(fields: [participationId], references: [id], onDelete: Cascade)
-  question        Question      @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  question        Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([participationId, questionId])
   @@index([participationId])
