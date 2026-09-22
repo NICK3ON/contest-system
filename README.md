@@ -1,6 +1,6 @@
 # Contest Participation System
 
-A JavaScript/Express backend for the Contest Participation System take-home assessment. This repository currently implements **Phases 1 through 5**, including authentication, contest participation, leaderboards, history, and prize finalization.
+A JavaScript/Express backend for the Contest Participation System take-home assessment. This repository currently implements **Phases 1 through 6**, including authentication, contest participation, leaderboards, prizes, and Gemini-assisted features.
 
 ## Prerequisites
 
@@ -9,7 +9,7 @@ A JavaScript/Express backend for the Contest Participation System take-home asse
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and set `DATABASE_URL` for a local PostgreSQL database.
+1. Copy `.env.example` to `.env`, set `DATABASE_URL`, and add a `GEMINI_API_KEY` to use the AI endpoints. `GEMINI_MODEL` defaults to `gemini-3.6-flash`.
 2. Install packages with `npm install`.
 3. Create the schema and apply the initial migration:
 
@@ -87,4 +87,12 @@ The included seed creates an admin account for local development only: `admin@ex
 - `POST /api/contests/:id/finalize` is admin-only and available after a contest ends. It awards the configured prize to the contest leader and safely returns the existing prize when called again.
 - Finalization is the cutoff for late submissions. This keeps the awarded winner stable while still allowing users to submit saved answers after the contest deadline and before administrative finalization.
 
-Phases 6 onward are intentionally not implemented yet: Gemini functionality and final security, Postman, testing, and documentation work remain out of scope until requested.
+## Gemini features
+
+- `POST /api/contests/search` accepts `{ "query": "active VIP Node.js contests" }`. Gemini converts the text into validated filters; application code builds the Prisma query and Gemini never generates SQL.
+- Supported search capabilities are derived status (`UPCOMING`, `ACTIVE`, `ENDED`), access level, topic, difficulty, presence of prize information, and contest start-time ranges such as "this week".
+- `POST /api/contests/:id/questions/generate` is admin-only and accepts optional `topic`, `difficulty`, `count` (1-20), and `questionTypes`.
+- Generated output is validated for shape, requested count/type, option uniqueness, and type-specific correctness rules. Obvious duplicate question text is skipped before insertion.
+- Both AI endpoints have a stricter rate limit and return a safe `503` when Gemini is not configured or `502` when its response is unavailable or invalid.
+
+Phase 7 remains: final security cleanup, broader tests, Postman examples, and documentation review.

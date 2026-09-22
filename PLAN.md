@@ -10,7 +10,6 @@
 
 ## Remaining phases
 
-6. Gemini natural-language search and validated question generation.
 7. Endpoint-level rate-limit application, security review, comprehensive tests, Postman examples, and final documentation.
 
 ## Phase 2 - complete
@@ -41,3 +40,11 @@
 - Authenticated participation history, in-progress contest, and prize history endpoints
 - Admin-only ended-contest finalization with contest/participation row locks and idempotent prize creation
 - Finalization closes late submission so an awarded winner cannot be displaced afterward
+
+## Phase 6 - complete
+
+- Gemini structured-output client using a configurable stable model and a 30-second timeout
+- Natural-language contest search translated into validated filters and server-built Prisma queries
+- Admin question generation with shared Zod rules for types, options, correctness, and requested count
+- Normalized duplicate detection against stored questions and within each generated batch
+- Strict AI endpoint rate limits and safe handling for missing configuration, provider failures, and invalid output

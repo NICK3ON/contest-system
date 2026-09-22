@@ -1,7 +1,7 @@
 # AI Usage Disclosure
 
-Codex was used to help generate and organize this project foundation, including boilerplate, the initial Prisma schema/migration, documentation, and the health test. Generated code was reviewed and deliberately kept within the requested Phase 1 scope.
+Codex was used for boilerplate, schema and migration work, implementation, refactoring, tests, debugging, and documentation. Generated code was reviewed, tested, and modified before inclusion.
 
-Gemini is the planned in-application provider for the two later AI features: natural-language contest search and admin question generation. Gemini will be constrained to structured data, validated with Zod, and will never generate or execute SQL.
+Gemini is the in-application provider for natural-language contest search and admin question generation. Gemini returns structured JSON only. Every response is validated with Zod before it can affect a Prisma query or database insert. Gemini never generates or executes SQL.
 
-Important business decisions—including derived contest status, one participation per user/contest, server-generated answer timing, exact-set multi-select scoring, and one idempotent prize per contest—are represented deliberately in the schema or deferred service design. They are not delegated to AI output.
+Important architectural and business decisions—including derived contest status, role access, server-generated answer timing, exact-set scoring, row locking, deterministic ranking, and idempotent prize awarding—were made deliberately in application and database code. They are not delegated to AI output.
