@@ -79,11 +79,12 @@ const submitParticipation = asyncHandler(async (req, res) => {
 
     const participation = await transaction.participation.findUnique({
       where: { id: req.params.participationId },
-      include: { contest: { select: { endTime: true } } },
+      include: { contest: { select: { endTime: true, prize: { select: { id: true } } } } },
     });
     if (!participation) throw new ApiError(404, 'Participation not found');
     if (participation.userId !== req.user.id) throw new ApiError(403, 'You cannot submit this participation');
     if (participation.status !== 'IN_PROGRESS') throw new ApiError(409, 'This participation has already been submitted');
+    if (participation.contest.prize) throw new ApiError(409, 'This contest has already been finalized');
 
     const answers = await transaction.answer.findMany({
       where: { participationId: participation.id, answeredAt: { lte: participation.contest.endTime } },

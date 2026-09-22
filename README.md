@@ -1,6 +1,6 @@
 # Contest Participation System
 
-A JavaScript/Express backend for the Contest Participation System take-home assessment. This repository currently implements **Phases 1 through 4**, including authentication, contest/question management, and concurrency-safe participation and scoring.
+A JavaScript/Express backend for the Contest Participation System take-home assessment. This repository currently implements **Phases 1 through 5**, including authentication, contest participation, leaderboards, history, and prize finalization.
 
 ## Prerequisites
 
@@ -79,4 +79,12 @@ The included seed creates an admin account for local development only: `admin@ex
 - `POST /api/participations/:participationId/submit` finalizes and scores the participation. Submission remains available after the deadline, but only answers saved by the deadline count.
 - Scoring awards one point for an exact correct selection and zero otherwise. Submission and answer updates lock the participation row so they cannot race each other or finalize twice.
 
-Phases 5 onward are intentionally not implemented yet: leaderboards, user history, prizes, Gemini functionality, and final security/documentation work remain out of scope until requested.
+## Leaderboards, history, and prizes
+
+- `GET /api/contests/:id/leaderboard` ranks submitted participants by score, fastest completion, then participation ID.
+- `GET /api/leaderboard` sums scores across each user's submitted participations without a stored leaderboard table.
+- `GET /api/users/me/history`, `/in-progress`, and `/prizes` return the authenticated user's contest activity.
+- `POST /api/contests/:id/finalize` is admin-only and available after a contest ends. It awards the configured prize to the contest leader and safely returns the existing prize when called again.
+- Finalization is the cutoff for late submissions. This keeps the awarded winner stable while still allowing users to submit saved answers after the contest deadline and before administrative finalization.
+
+Phases 6 onward are intentionally not implemented yet: Gemini functionality and final security, Postman, testing, and documentation work remain out of scope until requested.

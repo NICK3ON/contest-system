@@ -6,6 +6,8 @@ const { notFoundHandler, errorHandler } = require('./middleware/error.middleware
 const authRoutes = require('./routes/auth.routes');
 const contestRoutes = require('./routes/contest.routes');
 const participationRoutes = require('./routes/participation.routes');
+const leaderboardRoutes = require('./routes/leaderboard.routes');
+const userRoutes = require('./routes/user.routes');
 
 const app = express();
 
@@ -18,6 +20,8 @@ app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/contests', contestRoutes);
 app.use('/api/participations', participationRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/users', userRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -10,7 +10,6 @@
 
 ## Remaining phases
 
-5. Leaderboards, user history, and idempotent prize finalization.
 6. Gemini natural-language search and validated question generation.
 7. Endpoint-level rate-limit application, security review, comprehensive tests, Postman examples, and final documentation.
 
@@ -34,3 +33,11 @@
 - Exact-set scoring for all question types with no negative marking
 - Transactional final submission using a PostgreSQL row lock to prevent duplicate/concurrent finalization
 - Late submission support that scores only answers saved on or before the contest deadline
+
+## Phase 5 - complete
+
+- Public contest leaderboards ordered by score, completion duration, and deterministic participation ID
+- Public global leaderboard derived from submitted participation score totals
+- Authenticated participation history, in-progress contest, and prize history endpoints
+- Admin-only ended-contest finalization with contest/participation row locks and idempotent prize creation
+- Finalization closes late submission so an awarded winner cannot be displaced afterward
