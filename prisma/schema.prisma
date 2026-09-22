@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VIP
+  USER
+}
+
+enum ContestAccessLevel {
+  NORMAL
+  VIP
+}
+
+enum QuestionType {
+  SINGLE_SELECT
+  MULTI_SELECT
+  TRUE_FALSE
+}
+
+enum ParticipationStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  passwordHash   String
+  role           Role            @default(USER)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  createdContests Contest[]      @relation("ContestCreator")
+  participations Participation[]
+  prizes         Prize[]
+}
+
+model Contest {
+  id               String             @id @default(cuid())
+  name             String
+  description      String
+  accessLevel      ContestAccessLevel @default(NORMAL)
+  topic            String
+  difficulty       String
+  startTime        DateTime
+  endTime          DateTime
+  prizeDescription String
+  createdById      String             @map("createdBy")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  createdBy        User               @relation("ContestCreator", fields: [createdById], references: [id])
+  questions        Question[]
+  participations   Participation[]
+  prize            Prize?
+
+  @@index([startTime, endTime])
+  @@index([accessLevel])
+  @@index([topic])
+}
+
+model Question {
+  id           String       @id @default(cuid())
+  contestId    String
+  questionText String
+  type         QuestionType
+  difficulty   String
+  topic        String
+  explanation  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  contest      Contest      @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  options      QuestionOption[]
+  answers      Answer[]
+
+  @@unique([contestId, questionText])
+  @@index([contestId])
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  optionText String
+  isCorrect  Boolean  @default(false)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, optionText])
+  @@index([questionId])
+}
+
+model Participation {
+  id          String              @id @default(cuid())
+  userId      String
+  contestId   String
+  status      ParticipationStatus @default(IN_PROGRESS)
+  score       Int?
+  startedAt   DateTime            @default(now())
+  submittedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contest     Contest             @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+
+  @@unique([userId, contestId])
+  @@index([contestId, status])
+  @@index([userId, status])
+}
+
+model Answer {
+  id              String        @id @default(cuid())
+  participationId String
+  questionId      String
+  selectedOptions Json
+  isCorrect       Boolean?
+  answeredAt      DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  participation   Participation @relation(fields: [participationId], references: [id], onDelete: Cascade)
+  question        Question      @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([participationId, questionId])
+  @@index([participationId])
+  @@index([questionId])
+}
+
+model Prize {
+  id               String   @id @default(cuid())
+  contestId        String   @unique
+  userId           String
+  prizeDescription String
+  awardedAt        DateTime @default(now())
+  contest          Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+}
