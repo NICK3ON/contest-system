@@ -34,7 +34,7 @@ The API defaults to `http://localhost:3000`; `GET /health` returns `{ "status": 
 
 ### Optional demo frontend
 
-The assessment does not require a frontend, but a dependency-free demo is included as a bonus. It is isolated in [`frontend/`](frontend) and served by the API at `http://localhost:3000/demo/`; its separate sign-in/register screen is at `http://localhost:3000/demo/sign-in/`. It demonstrates public browsing, Gemini-assisted search, role-aware participation, answer saving and submission, history, prizes, leaderboards, and the main ADMIN workflows: contest creation/editing/deletion, manual and AI-generated questions, and prize finalization. It does not change API business logic.
+The assessment does not require a frontend, but a dependency-free demo is included as a bonus. It is isolated in [`frontend/`](frontend) and served by the API at `http://localhost:3000/demo/`; its separate sign-in/register screen is at `http://localhost:3000/demo/sign-in/`. It demonstrates public browsing, Gemini-assisted search, role-aware participation, answer saving and submission, history, prizes, leaderboards, and the main ADMIN workflows: contest creation/editing/deletion, manual and AI-generated questions, answer-key review, and prize finalization. It does not change API business logic.
 
 The development seed creates these local-only accounts, all with password `ChangeMe123!`:
 
@@ -73,7 +73,7 @@ Send protected requests with `Authorization: Bearer <token>`.
 | `DELETE /api/contests/:id` | ADMIN | Delete a contest |
 | `POST /api/contests/:id/questions` | ADMIN | Add a validated question |
 | `POST /api/contests/:id/questions/generate` | ADMIN, AI-limited | Generate validated questions with Gemini |
-| `GET /api/contests/:id/questions` | Joined participant | Get questions without correctness data |
+| `GET /api/contests/:id/questions` | Joined participant or ADMIN | Get participant-safe questions, or the complete admin answer key |
 | `POST /api/contests/:id/join` | USER or VIP | Join an eligible active contest |
 | `PUT /api/participations/:id/answers/:questionId` | Owner | Create or change a saved answer before the deadline |
 | `POST /api/participations/:id/submit` | Owner | Finalize and score saved answers |
@@ -97,13 +97,13 @@ Send protected requests with `Authorization: Bearer <token>`.
 
 ## Gemini features
 
-`POST /api/contests/search` converts natural language into validated filters. Application code constructs the Prisma query; Gemini never creates or executes SQL. Supported filters include derived status, access level, topic, difficulty, prize presence, and start-time ranges.
+`POST /api/contests/search` converts natural language into validated filters. Application code constructs the Prisma query; Gemini never creates or executes SQL. Supported filters include derived status, access level, topic, keyword, difficulty, prize presence, and start-time ranges. Keywords match contest names, descriptions, and topics. If AI filters find nothing, the complete query is also checked as a deterministic keyword fallback.
 
 `POST /api/contests/:id/questions/generate` accepts optional `topic`, `difficulty`, `count` (1-20), and `questionTypes`. Generated data is validated for shape, count, requested types, unique options, and type-specific correctness. Normalized duplicate questions are skipped.
 
 Contest and question difficulty is standardized as `BEGINNER`, `INTERMEDIATE`, or `ADVANCED`. The API, database, demo UI, and Gemini structured responses all enforce the same values.
 
-The client has a 30-second request bound and makes one retry for transient rate-limit or provider-capacity failures. Missing configuration returns `503`; exhausted provider or invalid-output failures return a safe `502`. Gemini may still be temporarily unavailable under provider load.
+The default model is `gemini-3.5-flash-lite`. The client has a 60-second request bound and makes up to four attempts with exponential backoff and jitter for transient rate-limit or provider failures. Provider-supplied retry timing is respected, daily quota exhaustion fails promptly, and minimal thinking is used for these focused structured-output tasks. Missing configuration returns `503`; exhausted provider or invalid-output failures return a safe `502`. Gemini may still be temporarily unavailable under sustained provider load or an exhausted daily quota.
 
 ## Validation and security
 

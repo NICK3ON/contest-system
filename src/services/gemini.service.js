@@ -2,21 +2,88 @@ const env = require('../config/env');
 const logger = require('../config/logger');
 const ApiError = require('../utils/apiError');
 
-const RETRYABLE_STATUSES = new Set([429, 503]);
-const RETRY_DELAY_MS = 500;
+const MAX_ATTEMPTS = 4;
+const BASE_RETRY_DELAY_MS = 1_000;
+const RETRY_JITTER_MS = 250;
+const MAX_RETRY_DELAY_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 60_000;
 
-function wait(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+function wait(milliseconds, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, milliseconds);
+
+    function onAbort() {
+      clearTimeout(timeout);
+      reject(signal.reason);
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function isRetryableStatus(status) {
+  return status === 429 || status >= 500;
+}
+
+function isDailyQuotaError(responseBody) {
+  try {
+    const data = JSON.parse(responseBody);
+    return data.error?.details?.some((detail) => detail.violations?.some(
+      (violation) => typeof violation.quotaId === 'string' && violation.quotaId.includes('PerDay'),
+    )) || false;
+  } catch (error) {
+    return false;
+  }
+}
+
+function parseRetryDelayMs(response, responseBody) {
+  const retryAfter = response.headers?.get?.('retry-after');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds)) return Math.max(0, seconds * 1_000);
+
+    const retryAt = Date.parse(retryAfter);
+    if (Number.isFinite(retryAt)) return Math.max(0, retryAt - Date.now());
+  }
+
+  try {
+    const data = JSON.parse(responseBody);
+    const retryInfo = data.error?.details?.find((detail) => typeof detail.retryDelay === 'string');
+    const duration = retryInfo?.retryDelay?.match(/^([0-9.]+)s$/);
+    if (duration) return Number(duration[1]) * 1_000;
+
+    const messageDelay = data.error?.message?.match(/retry in ([0-9.]+)s/i);
+    if (messageDelay) return Number(messageDelay[1]) * 1_000;
+  } catch (error) {
+    // Non-JSON provider errors fall back to exponential backoff.
+  }
+
+  return 0;
+}
+
+function retryDelay(attempt, response, responseBody) {
+  const exponentialDelay = BASE_RETRY_DELAY_MS * 2 ** attempt;
+  const providerDelay = parseRetryDelayMs(response, responseBody);
+  const jitter = Math.floor(Math.random() * RETRY_JITTER_MS);
+  return Math.min(Math.max(exponentialDelay, providerDelay) + jitter, MAX_RETRY_DELAY_MS);
 }
 
 async function generateStructured(prompt, responseSchema) {
   if (!env.geminiApiKey) throw new ApiError(503, 'AI features are not configured');
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response;
   try {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.geminiModel)}:generateContent`,
         {
@@ -24,7 +91,11 @@ async function generateStructured(prompt, responseSchema) {
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.geminiApiKey },
           body: JSON.stringify({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: 'application/json', responseSchema, temperature: 0.1 },
+            generationConfig: {
+              responseMimeType: 'application/json',
+              responseSchema,
+              thinkingConfig: { thinkingLevel: 'minimal' },
+            },
           }),
           signal: controller.signal,
         },
@@ -32,9 +103,13 @@ async function generateStructured(prompt, responseSchema) {
 
       if (response.ok) break;
       const responseBody = await response.text();
-      if (attempt === 0 && RETRYABLE_STATUSES.has(response.status)) {
-        logger.warn({ status: response.status }, 'Gemini unavailable; retrying once');
-        await wait(RETRY_DELAY_MS);
+      if (attempt < MAX_ATTEMPTS - 1 && isRetryableStatus(response.status) && !isDailyQuotaError(responseBody)) {
+        const delayMs = retryDelay(attempt, response, responseBody);
+        logger.warn(
+          { status: response.status, attempt: attempt + 1, maxAttempts: MAX_ATTEMPTS, delayMs },
+          'Gemini temporarily unavailable; retrying',
+        );
+        await wait(delayMs, controller.signal);
         continue;
       }
 

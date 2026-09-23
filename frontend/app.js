@@ -5,6 +5,7 @@ const state = {
   history: [],
   prizes: [],
   questions: [],
+  adminQuestions: [],
   activeView: null,
   activeAdminTask: 'create',
   token: sessionStorage.getItem('contestDemoToken') || '',
@@ -38,6 +39,9 @@ const elements = {
   aiQuestionTarget: document.querySelector('#ai-question-target'),
   generateQuestionsButton: document.querySelector('#generate-questions'),
   generatedQuestionResults: document.querySelector('#generated-question-results'),
+  adminQuestionList: document.querySelector('#admin-question-list'),
+  questionBankTarget: document.querySelector('#question-bank-target'),
+  refreshAdminQuestions: document.querySelector('#refresh-admin-questions'),
   editForm: document.querySelector('#contest-edit-form'),
   managementTarget: document.querySelector('#management-target'),
   adminContestSelect: document.querySelector('#admin-contest-select'),
@@ -167,15 +171,18 @@ function renderAdminWorkspace() {
   )).join('')}`;
   elements.questionTarget.textContent = contest ? `Adding to: ${contest.name}` : 'Select a contest first';
   elements.aiQuestionTarget.textContent = contest ? `Generating for: ${contest.name}` : 'Select a contest first';
+  elements.questionBankTarget.textContent = contest ? contest.name : 'Select a contest first';
   elements.managementTarget.textContent = contest ? contest.name : 'Select a contest first';
   if (contest) {
     document.querySelector('#question-topic').value = contest.topic;
     document.querySelector('#question-difficulty').value = contest.difficulty;
     populateContestEditForm(contest);
   } else {
+    state.adminQuestions = [];
     elements.generatedQuestionResults.innerHTML = '';
     if (state.activeAdminTask !== 'create') state.activeAdminTask = 'create';
   }
+  renderAdminQuestionBank();
   renderAdminTasks();
 }
 
@@ -307,9 +314,11 @@ async function searchContests(event) {
     renderDetail();
     renderAdminWorkspace();
     const filters = Object.entries(result.filters || {}).map(([key, value]) => `${key}: ${value}`);
-    elements.searchSummary.textContent = filters.length
-      ? `${result.contests.length} result(s) · Gemini understood ${filters.join(' · ')}`
-      : `${result.contests.length} result(s) · No specific filters were inferred.`;
+    elements.searchSummary.textContent = result.fallbackKeyword
+      ? `${result.contests.length} result(s) · Matched “${result.fallbackKeyword}” in contest names, descriptions, or topics.`
+      : filters.length
+        ? `${result.contests.length} result(s) · Gemini understood ${filters.join(' · ')}`
+        : `${result.contests.length} result(s) · No specific filters were inferred.`;
   } catch (error) {
     showNotice(error.message, 'error');
   }
@@ -379,6 +388,7 @@ async function selectContest(id) {
   if (!listContest) return;
   state.selectedContest = listContest;
   state.questions = [];
+  state.adminQuestions = [];
   renderContests();
   renderDetail();
   try {
@@ -386,7 +396,51 @@ async function selectContest(id) {
     state.selectedContest = contest;
     renderContests();
     renderDetail();
+    if (state.user?.role === 'ADMIN') await loadAdminQuestions();
   } catch (error) {
+    showNotice(error.message, 'error');
+  }
+}
+
+function renderAdminQuestion(question) {
+  const options = question.options.map((option, index) => `
+    <li class="answer-option ${option.isCorrect ? 'correct-answer' : ''}">
+      <span>${index + 1}. ${escapeHtml(option.optionText)}</span>
+      ${option.isCorrect ? '<strong>Correct</strong>' : ''}
+    </li>`).join('');
+  return `
+    <article class="answer-key-card">
+      <div class="answer-key-heading">
+        <strong>${escapeHtml(question.questionText)}</strong>
+        <span>${question.type.replaceAll('_', ' ')} · ${escapeHtml(question.difficulty)}</span>
+      </div>
+      <ol class="answer-options">${options}</ol>
+      ${question.explanation ? `<p><strong>Explanation:</strong> ${escapeHtml(question.explanation)}</p>` : ''}
+    </article>`;
+}
+
+function renderAdminQuestionBank() {
+  if (!elements.adminQuestionList) return;
+  if (!state.selectedContest) {
+    elements.adminQuestionList.innerHTML = '<p class="loading">Select a contest to review its answer key.</p>';
+    return;
+  }
+  elements.adminQuestionList.innerHTML = state.adminQuestions.length
+    ? state.adminQuestions.map(renderAdminQuestion).join('')
+    : '<p class="loading">This contest has no questions yet.</p>';
+}
+
+async function loadAdminQuestions() {
+  if (state.user?.role !== 'ADMIN' || !state.selectedContest) return;
+  const contestId = state.selectedContest.id;
+  elements.adminQuestionList.innerHTML = '<p class="loading">Loading questions and answers…</p>';
+  try {
+    const { questions } = await api(`/api/contests/${contestId}/questions`);
+    if (state.selectedContest?.id !== contestId) return;
+    state.adminQuestions = questions;
+    renderAdminQuestionBank();
+  } catch (error) {
+    elements.adminQuestionList.innerHTML = '';
     showNotice(error.message, 'error');
   }
 }
@@ -553,6 +607,7 @@ async function createQuestion(event) {
     elements.questionForm.reset();
     renderAdminWorkspace();
     applyQuestionTypeDefaults();
+    await loadAdminQuestions();
     showNotice('Question added to the selected contest.');
   } catch (error) {
     showNotice(error.message, 'error');
@@ -581,7 +636,8 @@ async function generateQuestions(event) {
     });
     elements.generatedQuestionResults.innerHTML = `
       <p class="muted">Latest generated batch</p>
-      ${result.questions.map((question) => `<article><strong>${escapeHtml(question.questionText)}</strong><span>${question.type.replaceAll('_', ' ')} · ${escapeHtml(question.difficulty)}</span></article>`).join('')}`;
+      ${result.questions.map(renderAdminQuestion).join('')}`;
+    await loadAdminQuestions();
     showNotice(`${result.generatedCount} question(s) generated${result.skippedDuplicates ? `; ${result.skippedDuplicates} duplicate(s) skipped` : ''}.`);
   } catch (error) {
     showNotice(error.message, 'error');
@@ -716,6 +772,7 @@ function signOut() {
   state.history = [];
   state.prizes = [];
   state.questions = [];
+  state.adminQuestions = [];
   state.activeView = 'explore';
   state.activeAdminTask = 'create';
   sessionStorage.removeItem('contestDemoToken');
@@ -741,11 +798,13 @@ document.querySelector('#refresh-account').addEventListener('click', loadAccount
 document.querySelector('#question-type').addEventListener('change', applyQuestionTypeDefaults);
 document.querySelector('#refresh-contests').addEventListener('click', loadContests);
 document.querySelector('#refresh-leaderboard').addEventListener('click', loadGlobalLeaderboard);
+elements.refreshAdminQuestions.addEventListener('click', loadAdminQuestions);
 elements.viewButtons.forEach((button) => button.addEventListener('click', () => switchView(button.dataset.viewTarget)));
 elements.adminTaskButtons.forEach((button) => button.addEventListener('click', () => switchAdminTask(button.dataset.adminTaskTarget)));
 elements.adminContestSelect.addEventListener('change', async () => {
   if (!elements.adminContestSelect.value) {
     state.selectedContest = null;
+    state.adminQuestions = [];
     state.activeAdminTask = 'create';
     renderContests();
     renderDetail();

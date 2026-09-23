@@ -52,14 +52,23 @@ describeWithDatabase('Gemini contest search and question generation', () => {
   });
 
   it('validates Gemini filters and uses Prisma for natural-language search', async () => {
-    mockGemini({ status: 'ACTIVE', accessLevel: 'VIP', topic: 'node' });
+    mockGemini({ status: 'ACTIVE', accessLevel: 'VIP', topic: 'node', keyword: 'integration' });
     const response = await request(app).post('/api/contests/search').send({ query: 'active VIP Node contests' });
 
     expect(response.status).toBe(200);
-    expect(response.body.filters).toEqual({ status: 'ACTIVE', accessLevel: 'VIP', topic: 'node' });
+    expect(response.body.filters).toEqual({ status: 'ACTIVE', accessLevel: 'VIP', topic: 'node', keyword: 'integration' });
     expect(response.body.contests.some((entry) => entry.id === contest.id)).toBe(true);
     const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
     expect(requestBody.generationConfig.responseMimeType).toBe('application/json');
+  });
+
+  it('falls back to an exact free-text match across contest names', async () => {
+    mockGemini({ topic: 'does-not-match' });
+    const response = await request(app).post('/api/contests/search').send({ query: contest.name });
+
+    expect(response.status).toBe(200);
+    expect(response.body.fallbackKeyword).toBe(contest.name);
+    expect(response.body.contests.some((entry) => entry.id === contest.id)).toBe(true);
   });
 
   it('validates generated questions and skips normalized duplicates before insertion', async () => {
@@ -84,5 +93,14 @@ describeWithDatabase('Gemini contest search and question generation', () => {
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ generatedCount: 1, skippedDuplicates: 1 });
     expect(response.body.questions[0]).toMatchObject({ topic: 'Node.js', difficulty: 'BEGINNER', type: 'TRUE_FALSE' });
+  });
+
+  it('shows answer keys to admins when listing contest questions', async () => {
+    const response = await request(app).get(`/api/contests/${contest.id}/questions`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.questions.length).toBeGreaterThan(0);
+    expect(response.body.questions[0].options[0]).toHaveProperty('isCorrect');
   });
 });

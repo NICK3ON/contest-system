@@ -22,7 +22,7 @@
 
 ## Phase 6 - complete
 
-- Gemini structured-output client, validated natural-language search, validated question generation, duplicate detection, AI-specific limits, bounded timeout, one transient-failure retry, and safe provider errors
+- Gemini structured-output client, validated natural-language search, validated question generation, duplicate detection, AI-specific limits, bounded timeout, exponential transient-failure retries, and safe provider errors
 
 ## Phase 7 - complete
 

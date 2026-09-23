@@ -100,6 +100,17 @@ button { cursor: pointer; }
 .generated-results article { display: grid; gap: .15rem; padding: .7rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .generated-results article strong { font-size: .86rem; }
 .generated-results article span { color: var(--muted); font-size: .72rem; }
+.question-bank-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .65rem; }
+.answer-key-list { display: grid; gap: .8rem; }
+.answer-key-card { display: grid; gap: .7rem; padding: .9rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.answer-key-heading { display: grid; gap: .15rem; }
+.answer-key-heading > strong { color: var(--navy); font-size: .92rem; }
+.answer-key-heading > span { color: var(--muted); font-size: .72rem; }
+.answer-options { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.answer-option { display: flex; justify-content: space-between; gap: .75rem; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); font-size: .82rem; }
+.answer-option.correct-answer { border-color: #9bd2b5; color: var(--green); background: var(--green-soft); }
+.answer-option strong { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.answer-key-card p { margin: 0; color: var(--muted); font-size: .8rem; }
 
 .button { border: 1px solid transparent; border-radius: 8px; padding: .62rem .9rem; font-size: .9rem; font-weight: 750; transition: transform .15s ease, background .15s ease; }
 .button:hover { transform: translateY(-1px); }

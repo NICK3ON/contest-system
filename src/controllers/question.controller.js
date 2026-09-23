@@ -8,11 +8,22 @@ const participantQuestionSelect = {
   options: { select: { id: true, optionText: true }, orderBy: { id: 'asc' } },
 };
 
+const adminQuestionSelect = {
+  id: true, questionText: true, type: true, difficulty: true, topic: true, explanation: true, createdAt: true,
+  options: { select: { id: true, optionText: true, isCorrect: true }, orderBy: { id: 'asc' } },
+};
+
 const listQuestions = asyncHandler(async (req, res) => {
   const contest = await prisma.contest.findUnique({
     where: { id: req.params.id }, select: { id: true, accessLevel: true, startTime: true, endTime: true },
   });
   if (!contest) throw new ApiError(404, 'Contest not found');
+  if (req.user.role === 'ADMIN') {
+    const questions = await prisma.question.findMany({
+      where: { contestId: contest.id }, select: adminQuestionSelect, orderBy: { createdAt: 'asc' },
+    });
+    return res.status(200).json({ questions });
+  }
   ensureQuestionAccess(req.user, contest);
   const now = new Date();
   if (now < contest.startTime || now >= contest.endTime) throw new ApiError(409, 'Contest is not active');

@@ -6,6 +6,15 @@ function buildContestWhere(filters, now = new Date()) {
   if (filters.status === 'ENDED') conditions.push({ endTime: { lte: now } });
   if (filters.accessLevel) conditions.push({ accessLevel: filters.accessLevel });
   if (filters.topic) conditions.push({ topic: { contains: filters.topic, mode: 'insensitive' } });
+  if (filters.keyword) {
+    conditions.push({
+      OR: [
+        { name: { contains: filters.keyword, mode: 'insensitive' } },
+        { description: { contains: filters.keyword, mode: 'insensitive' } },
+        { topic: { contains: filters.keyword, mode: 'insensitive' } },
+      ],
+    });
+  }
   if (filters.difficulty) conditions.push({ difficulty: filters.difficulty });
   if (filters.prizeOnly) conditions.push({ prizeDescription: { not: '' } });
   if (filters.startsFrom) conditions.push({ startTime: { gte: new Date(filters.startsFrom) } });

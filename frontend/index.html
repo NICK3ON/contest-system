@@ -68,6 +68,7 @@
           <button class="admin-task-button" type="button" data-admin-task-target="manage">Edit &amp; finalize</button>
           <button class="admin-task-button" type="button" data-admin-task-target="manual">Manual question</button>
           <button class="admin-task-button" type="button" data-admin-task-target="ai">Generate with AI</button>
+          <button class="admin-task-button" type="button" data-admin-task-target="questions">Question bank</button>
         </nav>
         <div class="admin-workspace-grid">
           <section class="admin-block" aria-labelledby="create-contest-title" data-admin-task="create">
@@ -152,6 +153,20 @@
                 <button id="delete-contest" class="button danger" type="button">Delete contest</button>
               </div>
             </form>
+          </section>
+
+          <section class="admin-block" aria-labelledby="question-bank-title" data-admin-task="questions" hidden>
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">Answer key</p>
+                <h3 id="question-bank-title">Questions and correct answers</h3>
+              </div>
+              <div class="question-bank-actions">
+                <span id="question-bank-target" class="muted">Select a contest first</span>
+                <button id="refresh-admin-questions" class="button secondary" type="button">Refresh</button>
+              </div>
+            </div>
+            <div id="admin-question-list" class="answer-key-list" aria-live="polite"></div>
           </section>
         </div>
       </section>

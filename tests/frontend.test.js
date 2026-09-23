@@ -10,6 +10,8 @@ describe('optional demo frontend', () => {
     expect(response.text).toContain('Create a contest');
     expect(response.text).toContain('Add a manual question');
     expect(response.text).toContain('Generate questions with AI');
+    expect(response.text).toContain('Questions and correct answers');
+    expect(response.text).toContain('data-admin-task-target="questions"');
     expect(response.text).toContain('Edit, finalize, or delete');
     expect(response.text).toContain('Participation history and prizes');
     expect(response.text).toContain('Admin workspace');
