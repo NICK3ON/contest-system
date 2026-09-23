@@ -1,98 +1,186 @@
 # Contest Participation System
 
-A JavaScript/Express backend for the Contest Participation System take-home assessment. This repository currently implements **Phases 1 through 6**, including authentication, contest participation, leaderboards, prizes, and Gemini-assisted features.
+A JavaScript/Express and PostgreSQL backend for a timed contest platform. It supports role-based access, answer editing until the deadline, exact-set scoring, deterministic leaderboards, prize finalization, and Gemini-assisted search and question generation.
 
 ## Prerequisites
 
 - Node.js 18 or newer
-- PostgreSQL 14 or newer
+- PostgreSQL 14 or newer, or Docker
 
-## Setup
+## Local setup
 
-1. Copy `.env.example` to `.env`, set `DATABASE_URL`, and add a `GEMINI_API_KEY` to use the AI endpoints. `GEMINI_MODEL` defaults to `gemini-3.6-flash`.
-2. Install packages with `npm install`.
-3. Create the schema and apply the initial migration:
+1. Copy `.env.example` to `.env`. Set a strong `JWT_SECRET` and, if using the AI endpoints, a `GEMINI_API_KEY`. Never commit `.env`.
+2. Start PostgreSQL. The included Docker configuration can do this with:
 
    ```bash
-   npm run prisma:migrate -- --name init
+   docker compose up -d db
    ```
 
-   If using the committed migration against an existing deployment database, use:
+3. Install dependencies and prepare the database:
 
    ```bash
+   npm install
    npm run prisma:deploy
-   ```
-
-4. Seed development data:
-
-   ```bash
    npm run prisma:seed
    ```
 
-5. Start the API:
+4. Start the API:
 
    ```bash
    npm run dev
    ```
 
-Run unit tests with `npm test`. With the local PostgreSQL service migrated and seeded, run the database-backed participation/concurrency test in PowerShell with:
+The API defaults to `http://localhost:3000`; `GET /health` returns `{ "status": "ok" }`.
+
+The development seed creates these local-only accounts, all with password `ChangeMe123!`:
+
+| Role | Email |
+| --- | --- |
+| ADMIN | `admin@example.com` |
+| VIP | `vip@example.com` |
+| USER | `user@example.com` |
+
+Change or remove seeded credentials before using a shared environment.
+
+## How the system works
+
+1. An administrator creates a contest and adds questions manually or through Gemini. Contest status is calculated from the server clock, so no background job is needed to move a contest between `UPCOMING`, `ACTIVE`, and `ENDED`.
+2. Guests can browse contest details. An authenticated `USER` can join an active `NORMAL` contest; a `VIP` can join active `NORMAL` and `VIP` contests. An `ADMIN` cannot participate.
+3. After joining, the participant fetches the contest questions. Correct options and explanations are removed from participant-facing responses.
+4. Each answer is saved separately and can be replaced while the contest is active. The server records `answeredAt`; client timestamps are never accepted.
+5. When the participant submits, the API locks that participation, scores the latest answers saved by the deadline, and changes it from `IN_PROGRESS` to `SUBMITTED`. Only one concurrent submission can succeed.
+6. Contest and global leaderboards are calculated from submitted participations. After a contest ends, an administrator finalizes it once and the highest-ranked participant receives the configured prize.
+7. Gemini is used only to produce structured search filters or question candidates. Zod validates its output, and application code—not Gemini—queries or writes the database.
+
+## API overview
+
+Send protected requests with `Authorization: Bearer <token>`.
+
+| Method and path | Access | Purpose |
+| --- | --- | --- |
+| `POST /api/auth/register` | Public | Register a `USER`; callers cannot select a role |
+| `POST /api/auth/login` | Public | Authenticate and receive a JWT |
+| `GET /api/auth/me` | Authenticated | Return the current user |
+| `GET /api/contests` | Public | List contests with derived status |
+| `GET /api/contests/:id` | Public | Get contest details |
+| `POST /api/contests/search` | Public, AI-limited | Search contests using natural language |
+| `POST /api/contests` | ADMIN | Create a contest |
+| `PATCH /api/contests/:id` | ADMIN | Update a contest |
+| `DELETE /api/contests/:id` | ADMIN | Delete a contest |
+| `POST /api/contests/:id/questions` | ADMIN | Add a validated question |
+| `POST /api/contests/:id/questions/generate` | ADMIN, AI-limited | Generate validated questions with Gemini |
+| `GET /api/contests/:id/questions` | Joined participant | Get questions without correctness data |
+| `POST /api/contests/:id/join` | USER or VIP | Join an eligible active contest |
+| `PUT /api/participations/:id/answers/:questionId` | Owner | Create or change a saved answer before the deadline |
+| `POST /api/participations/:id/submit` | Owner | Finalize and score saved answers |
+| `GET /api/contests/:id/leaderboard` | Public | Get the contest ranking |
+| `GET /api/leaderboard` | Public | Get aggregate global rankings |
+| `GET /api/users/me/history` | Authenticated | Get completed participation history |
+| `GET /api/users/me/in-progress` | Authenticated | Get the current in-progress contest |
+| `GET /api/users/me/prizes` | Authenticated | Get awarded prizes |
+| `POST /api/contests/:id/finalize` | ADMIN | Award the ended contest's prize idempotently |
+
+## Core behavior and design decisions
+
+- Contest status is derived from server time and `startTime`/`endTime`; it is not stored as mutable state.
+- Normal contests accept `USER` and `VIP` participants. VIP contests accept only `VIP`. Admins cannot participate.
+- A user can join a contest once. Participant questions never expose correct-option flags or explanations.
+- Answers are upserted, so participants can change them while the contest is active. The server owns `answeredAt`; writes after the deadline are rejected.
+- Submission can occur after the deadline, but scoring includes only answers saved by the deadline. Finalizing the contest closes late submission and keeps the awarded winner stable.
+- A question scores one point only when the selected option set exactly matches the correct set. There is no partial credit or negative marking.
+- Submission and finalization use PostgreSQL row locks. Database uniqueness constraints protect participation, answers, and prize creation from duplicate or concurrent operations.
+- Leaderboards use score, completion duration, and participation ID for stable deterministic ordering.
+
+## Gemini features
+
+`POST /api/contests/search` converts natural language into validated filters. Application code constructs the Prisma query; Gemini never creates or executes SQL. Supported filters include derived status, access level, topic, difficulty, prize presence, and start-time ranges.
+
+`POST /api/contests/:id/questions/generate` accepts optional `topic`, `difficulty`, `count` (1-20), and `questionTypes`. Generated data is validated for shape, count, requested types, unique options, and type-specific correctness. Normalized duplicate questions are skipped.
+
+The client has a 30-second request bound and makes one retry for transient rate-limit or provider-capacity failures. Missing configuration returns `503`; exhausted provider or invalid-output failures return a safe `502`. Gemini may still be temporarily unavailable under provider load.
+
+## Validation and security
+
+- Zod validates request bodies and AI output; relevant mutation bodies reject unknown fields.
+- Passwords require 8-128 characters and are bcrypt-hashed with 12 rounds.
+- Authentication, general API traffic, and AI endpoints have separate rate limits.
+- JSON request bodies are limited to 100 KB. Malformed and oversized payloads receive safe `400` and `413` responses.
+- Production startup requires a JWT secret of at least 32 characters.
+- Authorization headers, cookies, credentials, tokens, API keys, and error request bodies are redacted from logs.
+- Prisma constraint and not-found errors are translated into safe client responses; unexpected internals are not exposed.
+
+## How to verify the project
+
+### 1. Verify the database and API
+
+After completing the local setup, validate the Prisma schema and confirm that all committed migrations are applied:
+
+```bash
+npx prisma validate
+npm run prisma:deploy
+```
+
+Start the API with `npm run dev`, then open a second terminal and check its health:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+### 2. Run the automated tests
+
+Run the fast unit and HTTP security tests with:
+
+```bash
+npm test
+```
+
+Database-backed suites are skipped by default. Run the complete suite after PostgreSQL is migrated and seeded.
+
+PowerShell:
 
 ```powershell
 $env:RUN_INTEGRATION_TESTS='1'; npm test -- --detectOpenHandles
 ```
 
-`GET /health` returns `{ "status": "ok" }`.
+macOS/Linux shell:
 
-## Authentication
+```bash
+RUN_INTEGRATION_TESTS=1 npm test -- --detectOpenHandles
+```
 
-- `POST /api/auth/register` accepts `{ "name", "email", "password" }` and always creates a `USER` account. Roles cannot be selected at registration.
-- `POST /api/auth/login` accepts `{ "email", "password" }` and returns a JWT plus a safe user profile.
-- `GET /api/auth/me` requires `Authorization: Bearer <token>` and returns the current user.
-- The `authenticate` middleware verifies the JWT and reloads the user from the database; `authorize('ADMIN')` (or another role) can protect subsequent phase endpoints.
+All suites should pass. The full suite checks authentication, access levels, hidden correct answers, answer saving, exact-set scoring, deadline rejection, late submission of previously saved answers, duplicate concurrent submission, deterministic ranking, prize finalization, AI validation/retry behavior, and malformed or oversized requests. Gemini is mocked in automated tests, so these checks do not spend API quota.
 
-Passwords require 8-128 characters, are bcrypt-hashed (12 rounds), and are never returned by the API. Registration and login share a strict auth rate limit.
+### 3. Check the complete API flow with Postman
 
-The included seed creates an admin account for local development only: `admin@example.com` / `ChangeMe123!`. Change or remove that account before any shared environment.
+1. Import `postman/contest-system.postman_collection.json` into Postman.
+2. Ensure the seeded API is running at `http://localhost:3000`. Change the collection's `baseUrl` variable if a different port is used.
+3. Run the numbered folders in order:
+   - `1 - System and authentication` checks health, logs in the seeded ADMIN and VIP, registers a unique USER, and captures all tokens.
+   - `2 - Contest and question management` creates an active contest, captures its IDs, adds a question, and demonstrates the two Gemini endpoints.
+   - `3 - Participation workflow` joins the contest, confirms correctness data is hidden, saves an answer, and submits it.
+   - `4 - Leaderboards and user data` checks contest/global rankings and the authenticated user's history.
+   - `5 - VIP and prize finalization` exercises VIP access, ends and finalizes the normal contest, and removes the created contests.
+4. Confirm that the Postman test results are green and that the collection variables contain captured tokens and IDs.
 
-## Data-model decisions
+The collection regenerates its temporary email and contest times automatically, so it can be run again. If `GEMINI_API_KEY` is empty, skip the two requests containing `Gemini` or `Natural-language`; the rest of the collection is independent of the external provider.
 
-- Contest state is deliberately not persisted. It will be derived from `startTime` and `endTime` as `UPCOMING`, `ACTIVE`, or `ENDED`.
-- Guest users have no database model; only authenticated roles (`ADMIN`, `VIP`, `USER`) are stored.
-- `Participation` is unique per `(userId, contestId)`, enforcing one join per user and contest.
-- `Answer` is unique per `(participationId, questionId)`, allowing a saved answer to be updated while preserving a server-generated `answeredAt` timestamp in later phases.
-- `Prize.contestId` is unique, which supports idempotent single-winner prize awarding.
-- Correctness is stored on options and answers but will be excluded from participant-facing query selections in the questions API.
+### Expected business-rule checks
 
-## Scope status
+- A guest can list contests but receives `401` when attempting a protected action.
+- A `USER` is rejected from a `VIP` contest, while a `VIP` can join it.
+- Participant question and answer responses never contain `isCorrect`.
+- Re-saving an answer before the deadline replaces it; changing it after the deadline returns `409`.
+- Two simultaneous submissions produce one success and one `409` conflict.
+- Repeating prize finalization returns the existing prize instead of creating another one.
 
-## Contests and questions
+## Project notes
 
-- `GET /api/contests` and `GET /api/contests/:id` are public and return all contests. Their `status` is derived at response time from `startTime` and `endTime`.
-- `POST`, `PATCH`, and `DELETE /api/contests/:id` management endpoints are restricted to `ADMIN` (creation is `POST /api/contests`).
-- `POST /api/contests/:id/questions` is restricted to `ADMIN` and validates each supported question type and its options.
-- `GET /api/contests/:id/questions` requires an eligible authenticated participant: `USER` for normal contests and `VIP` for normal/VIP contests. Admins do not receive participant questions. Correct-option flags and explanations are not exposed.
-
-## Participation and scoring
-
-- `POST /api/contests/:id/join` joins an active contest once. Admins cannot participate; users are restricted by contest access level.
-- `PUT /api/participations/:participationId/answers/:questionId` accepts `{ "selectedOptionIds": [...] }`, validates option ownership, and saves an answer with server time.
-- `POST /api/participations/:participationId/submit` finalizes and scores the participation. Submission remains available after the deadline, but only answers saved by the deadline count.
-- Scoring awards one point for an exact correct selection and zero otherwise. Submission and answer updates lock the participation row so they cannot race each other or finalize twice.
-
-## Leaderboards, history, and prizes
-
-- `GET /api/contests/:id/leaderboard` ranks submitted participants by score, fastest completion, then participation ID.
-- `GET /api/leaderboard` sums scores across each user's submitted participations without a stored leaderboard table.
-- `GET /api/users/me/history`, `/in-progress`, and `/prizes` return the authenticated user's contest activity.
-- `POST /api/contests/:id/finalize` is admin-only and available after a contest ends. It awards the configured prize to the contest leader and safely returns the existing prize when called again.
-- Finalization is the cutoff for late submissions. This keeps the awarded winner stable while still allowing users to submit saved answers after the contest deadline and before administrative finalization.
-
-## Gemini features
-
-- `POST /api/contests/search` accepts `{ "query": "active VIP Node.js contests" }`. Gemini converts the text into validated filters; application code builds the Prisma query and Gemini never generates SQL.
-- Supported search capabilities are derived status (`UPCOMING`, `ACTIVE`, `ENDED`), access level, topic, difficulty, presence of prize information, and contest start-time ranges such as "this week".
-- `POST /api/contests/:id/questions/generate` is admin-only and accepts optional `topic`, `difficulty`, `count` (1-20), and `questionTypes`.
-- Generated output is validated for shape, requested count/type, option uniqueness, and type-specific correctness rules. Obvious duplicate question text is skipped before insertion.
-- Both AI endpoints have a stricter rate limit and return a safe `503` when Gemini is not configured or `502` when its response is unavailable or invalid.
-
-Phase 7 remains: final security cleanup, broader tests, Postman examples, and documentation review.
+- `.env.example` documents required configuration without secrets; `.env` is Git-ignored.
+- [`PLAN.md`](PLAN.md) summarizes completed phases.
+- [`AI_USAGE.md`](AI_USAGE.md) discloses how AI tooling was used in the project and application.

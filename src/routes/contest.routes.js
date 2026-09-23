@@ -24,10 +24,10 @@ const contestFields = {
   endTime: date,
   prizeDescription: z.string().trim().min(1).max(1000),
 };
-const contestCreateSchema = z.object(contestFields).superRefine((value, context) => {
+const contestCreateSchema = z.object(contestFields).strict().superRefine((value, context) => {
   if (value.startTime >= value.endTime) context.addIssue({ code: z.ZodIssueCode.custom, path: ['endTime'], message: 'endTime must be after startTime' });
 });
-const contestUpdateSchema = z.object(contestFields).partial().refine((value) => Object.keys(value).length > 0, 'At least one field is required');
+const contestUpdateSchema = z.object(contestFields).strict().partial().refine((value) => Object.keys(value).length > 0, 'At least one field is required');
 const searchSchema = z.object({ query: z.string().trim().min(2).max(500) }).strict();
 const generateSchema = z.object({
   topic: z.string().trim().min(1).max(100).optional(),

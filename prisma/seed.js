@@ -8,6 +8,16 @@ async function main() {
     update: {},
     create: { name: 'System Admin', email: 'admin@example.com', passwordHash, role: 'ADMIN' },
   });
+  await prisma.user.upsert({
+    where: { email: 'vip@example.com' },
+    update: {},
+    create: { name: 'Development VIP', email: 'vip@example.com', passwordHash, role: 'VIP' },
+  });
+  await prisma.user.upsert({
+    where: { email: 'user@example.com' },
+    update: {},
+    create: { name: 'Development User', email: 'user@example.com', passwordHash, role: 'USER' },
+  });
 
   const now = new Date();
   const activeStart = new Date(now.getTime() - 60 * 60 * 1000);
@@ -21,7 +31,7 @@ async function main() {
       prizeDescription: 'Certificate of achievement', createdById: admin.id,
     },
   });
-  console.log('Seed complete. Development admin: admin@example.com / ChangeMe123!');
+  console.log('Seed complete. Development users use password ChangeMe123!: admin@example.com, vip@example.com, user@example.com');
 }
 
 main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());

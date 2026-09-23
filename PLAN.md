@@ -1,50 +1,32 @@
 # Implementation Plan
 
-## Phase 1 — complete
+## Phase 1 - complete
 
-- Express bootstrap, configuration, environment example, and health endpoint
-- Prisma PostgreSQL schema, initial migration, and seed structure
-- Pino request/application logging and centralized safe error responses
-- Request-validation helper and baseline/rule-specific rate-limit middleware
-- Initial health test and Postman collection
-
-## Remaining phases
-
-7. Endpoint-level rate-limit application, security review, comprehensive tests, Postman examples, and final documentation.
+- Express bootstrap, environment configuration, health endpoint, Prisma/PostgreSQL schema, migration, seed structure, logging, safe error handling, baseline validation, rate limiting, and initial tests/Postman collection
 
 ## Phase 2 - complete
 
-- `POST /api/auth/register`, `POST /api/auth/login`, and protected `GET /api/auth/me`
-- bcrypt password hashing, JWT issuance/verification, and database-backed authentication
-- Reusable role authorization middleware; public registration is intentionally limited to `USER`
+- Registration, login, current-user endpoint, bcrypt password hashing, JWT authentication, database-backed identity checks, and reusable role authorization
 
 ## Phase 3 - complete
 
-- Public contest listing/detail endpoints with derived `UPCOMING`, `ACTIVE`, and `ENDED` status
-- Admin-only contest CRUD and manual question creation
-- Validated single-select, multi-select, and true/false questions with unique option text
-- Protected participant question retrieval with contest access-level enforcement and no correct-answer fields
+- Public contest discovery with derived status, admin contest/question management, question-type validation, participant access rules, and correctness-safe question responses
 
 ## Phase 4 - complete
 
-- Active-contest joining with role/access enforcement and one participation per user/contest
-- Individually saved answers with server timestamps, option ownership checks, and deadline enforcement
-- Exact-set scoring for all question types with no negative marking
-- Transactional final submission using a PostgreSQL row lock to prevent duplicate/concurrent finalization
-- Late submission support that scores only answers saved on or before the contest deadline
+- Eligible contest joining, editable answer saving with server timestamps, deadline enforcement, exact-set scoring, row-locked submission, and late submission of previously saved answers
 
 ## Phase 5 - complete
 
-- Public contest leaderboards ordered by score, completion duration, and deterministic participation ID
-- Public global leaderboard derived from submitted participation score totals
-- Authenticated participation history, in-progress contest, and prize history endpoints
-- Admin-only ended-contest finalization with contest/participation row locks and idempotent prize creation
-- Finalization closes late submission so an awarded winner cannot be displaced afterward
+- Deterministic contest/global leaderboards, user history/in-progress/prize views, row-locked and idempotent prize finalization, and stable winner cutoff behavior
 
 ## Phase 6 - complete
 
-- Gemini structured-output client using a configurable stable model and a 30-second timeout
-- Natural-language contest search translated into validated filters and server-built Prisma queries
-- Admin question generation with shared Zod rules for types, options, correctness, and requested count
-- Normalized duplicate detection against stored questions and within each generated batch
-- Strict AI endpoint rate limits and safe handling for missing configuration, provider failures, and invalid output
+- Gemini structured-output client, validated natural-language search, validated question generation, duplicate detection, AI-specific limits, bounded timeout, one transient-failure retry, and safe provider errors
+
+## Phase 7 - complete
+
+- Strict request validation and safe malformed/oversized-body handling
+- Production secret checks, sensitive log redaction, bounded request IDs, and safe database error mapping
+- Comprehensive unit, HTTP security, database integration, timing, access, and concurrency coverage
+- End-to-end Postman workflow, expanded development seed, and final setup/API/architecture documentation

@@ -12,7 +12,13 @@ const userRoutes = require('./routes/user.routes');
 const app = express();
 
 app.disable('x-powered-by');
-app.use(pinoHttp({ logger, genReqId: (req) => req.headers['x-request-id'] || crypto.randomUUID() }));
+app.use(pinoHttp({
+  logger,
+  genReqId: (req) => {
+    const supplied = req.headers['x-request-id'];
+    return typeof supplied === 'string' && supplied.length <= 100 ? supplied : crypto.randomUUID();
+  },
+}));
 app.use(express.json({ limit: '100kb' }));
 app.use(standardLimiter);
 

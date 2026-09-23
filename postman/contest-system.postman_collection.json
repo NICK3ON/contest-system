@@ -1,16 +1,233 @@
 {
   "info": {
     "name": "Contest Participation System",
-    "description": "Phase 1 collection. Further endpoints will be added in later phases.",
+    "description": "End-to-end examples for the Contest Participation System. Run the folders in order after migrating and seeding the database. Tokens and created IDs are captured automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [{ "key": "baseUrl", "value": "http://localhost:3000" }],
-  "item": [{
-    "name": "System",
-    "item": [{
-      "name": "Health check",
-      "request": { "method": "GET", "url": "{{baseUrl}}/health" },
-      "response": []
-    }]
-  }]
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.collectionVariables.set('userEmail', `postman-${Date.now()}@example.com`);",
+          "pm.collectionVariables.set('startTime', new Date(Date.now() - 60000).toISOString());",
+          "pm.collectionVariables.set('endTime', new Date(Date.now() + 3600000).toISOString());",
+          "pm.collectionVariables.set('endedTime', new Date(Date.now() - 1000).toISOString());"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminEmail", "value": "admin@example.com" },
+    { "key": "adminPassword", "value": "ChangeMe123!" },
+    { "key": "vipEmail", "value": "vip@example.com" },
+    { "key": "vipPassword", "value": "ChangeMe123!" },
+    { "key": "userEmail", "value": "" },
+    { "key": "userPassword", "value": "PostmanPass123!" },
+    { "key": "adminToken", "value": "" },
+    { "key": "vipToken", "value": "" },
+    { "key": "userToken", "value": "" },
+    { "key": "contestId", "value": "" },
+    { "key": "vipContestId", "value": "" },
+    { "key": "questionId", "value": "" },
+    { "key": "correctOptionId", "value": "" },
+    { "key": "participationId", "value": "" },
+    { "key": "startTime", "value": "" },
+    { "key": "endTime", "value": "" },
+    { "key": "endedTime", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1 - System and authentication",
+      "item": [
+        {
+          "name": "Health check",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Healthy', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Login admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Admin logged in', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.collectionVariables.set('adminToken', json.token);"] } }]
+        },
+        {
+          "name": "Login seeded VIP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{vipEmail}}\",\n  \"password\": \"{{vipPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('VIP logged in', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('vipToken', pm.response.json().token);"] } }]
+        },
+        {
+          "name": "Register user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman User\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('User registered', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('userToken', pm.response.json().token);"] } }]
+        },
+        {
+          "name": "Current user",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Contest and question management",
+      "item": [
+        {
+          "name": "Create active normal contest",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Node Contest\",\n  \"description\": \"End-to-end API example\",\n  \"accessLevel\": \"NORMAL\",\n  \"topic\": \"Node.js\",\n  \"difficulty\": \"BEGINNER\",\n  \"startTime\": \"{{startTime}}\",\n  \"endTime\": \"{{endTime}}\",\n  \"prizeDescription\": \"Certificate\"\n}" },
+            "url": "{{baseUrl}}/api/contests"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Contest created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('contestId', pm.response.json().contest.id);"] } }]
+        },
+        {
+          "name": "List contests as guest",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/contests" }
+        },
+        {
+          "name": "Contest details as guest",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/contests/{{contestId}}" }
+        },
+        {
+          "name": "Create manual question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"questionText\": \"Node.js uses an event loop.\",\n  \"type\": \"TRUE_FALSE\",\n  \"difficulty\": \"BEGINNER\",\n  \"topic\": \"Node.js\",\n  \"explanation\": \"The event loop coordinates asynchronous callbacks.\",\n  \"options\": [\n    { \"optionText\": \"True\", \"isCorrect\": true },\n    { \"optionText\": \"False\", \"isCorrect\": false }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/contests/{{contestId}}/questions"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Question created', () => pm.response.to.have.status(201));", "const question = pm.response.json().question;", "pm.collectionVariables.set('questionId', question.id);", "pm.collectionVariables.set('correctOptionId', question.options.find(option => option.isCorrect).id);"] } }]
+        },
+        {
+          "name": "Generate questions with Gemini",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"count\": 2,\n  \"questionTypes\": [\"SINGLE_SELECT\", \"MULTI_SELECT\"]\n}" },
+            "url": "{{baseUrl}}/api/contests/{{contestId}}/questions/generate"
+          }
+        },
+        {
+          "name": "Natural-language contest search",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"query\": \"active normal beginner Node.js contests with prizes\"\n}" },
+            "url": "{{baseUrl}}/api/contests/search"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Participation workflow",
+      "item": [
+        {
+          "name": "Join contest",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/api/contests/{{contestId}}/join"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Contest joined', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('participationId', pm.response.json().participation.id);"] } }]
+        },
+        {
+          "name": "Get participant questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/api/contests/{{contestId}}/questions"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Correctness is hidden', () => { const body = JSON.stringify(pm.response.json()); pm.expect(body).not.to.include('isCorrect'); });"] } }]
+        },
+        {
+          "name": "Save or change answer",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"selectedOptionIds\": [\"{{correctOptionId}}\"]\n}" },
+            "url": "{{baseUrl}}/api/participations/{{participationId}}/answers/{{questionId}}"
+          }
+        },
+        {
+          "name": "Submit participation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/api/participations/{{participationId}}/submit"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Submitted with a score', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().participation.score).to.be.a('number'); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "4 - Leaderboards and user data",
+      "item": [
+        { "name": "Contest leaderboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/contests/{{contestId}}/leaderboard" } },
+        { "name": "Global leaderboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/leaderboard" } },
+        { "name": "My history", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }], "url": "{{baseUrl}}/api/users/me/history" } },
+        { "name": "My in-progress contests", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }], "url": "{{baseUrl}}/api/users/me/in-progress" } },
+        { "name": "My prizes", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }], "url": "{{baseUrl}}/api/users/me/prizes" } }
+      ]
+    },
+    {
+      "name": "5 - VIP and prize finalization",
+      "item": [
+        {
+          "name": "Create active VIP contest",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman VIP Contest\",\n  \"description\": \"VIP access example\",\n  \"accessLevel\": \"VIP\",\n  \"topic\": \"Architecture\",\n  \"difficulty\": \"ADVANCED\",\n  \"startTime\": \"{{startTime}}\",\n  \"endTime\": \"{{endTime}}\",\n  \"prizeDescription\": \"VIP certificate\"\n}" },
+            "url": "{{baseUrl}}/api/contests"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('vipContestId', pm.response.json().contest.id);"] } }]
+        },
+        {
+          "name": "VIP joins VIP contest",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{vipToken}}" }], "url": "{{baseUrl}}/api/contests/{{vipContestId}}/join" }
+        },
+        {
+          "name": "End normal contest",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"endTime\": \"{{endedTime}}\"\n}" },
+            "url": "{{baseUrl}}/api/contests/{{contestId}}"
+          }
+        },
+        {
+          "name": "Finalize contest prize",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/api/contests/{{contestId}}/finalize" }
+        },
+        {
+          "name": "Delete normal contest",
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/api/contests/{{contestId}}" }
+        },
+        {
+          "name": "Delete VIP contest",
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/api/contests/{{vipContestId}}" }
+        }
+      ]
+    }
+  ]
 }

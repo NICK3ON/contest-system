@@ -9,8 +9,12 @@ const router = express.Router();
 const credentials = z.object({
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
   password: z.string().min(8).max(128),
-});
-const registration = credentials.extend({ name: z.string().trim().min(1).max(100) });
+}).strict();
+const registration = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
+  password: z.string().min(8).max(128),
+}).strict();
 
 router.post('/register', authLimiter, validate(registration), register);
 router.post('/login', authLimiter, validate(credentials), login);
