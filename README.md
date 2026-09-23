@@ -101,6 +101,8 @@ Send protected requests with `Authorization: Bearer <token>`.
 
 `POST /api/contests/:id/questions/generate` accepts optional `topic`, `difficulty`, `count` (1-20), and `questionTypes`. Generated data is validated for shape, count, requested types, unique options, and type-specific correctness. Normalized duplicate questions are skipped.
 
+Contest and question difficulty is standardized as `BEGINNER`, `INTERMEDIATE`, or `ADVANCED`. The API, database, demo UI, and Gemini structured responses all enforce the same values.
+
 The client has a 30-second request bound and makes one retry for transient rate-limit or provider-capacity failures. Missing configuration returns `503`; exhausted provider or invalid-output failures return a safe `502`. Gemini may still be temporarily unavailable under provider load.
 
 ## Validation and security

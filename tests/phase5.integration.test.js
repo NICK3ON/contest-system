@@ -63,7 +63,7 @@ describeWithDatabase('leaderboards, history, and prize finalization', () => {
     const activeContest = await prisma.contest.create({
       data: {
         name: `Phase Five Active ${unique}`, description: 'In-progress integration test', accessLevel: 'NORMAL',
-        topic: 'Testing', difficulty: 'EASY', startTime: new Date(Date.now() - 60_000),
+        topic: 'Testing', difficulty: 'BEGINNER', startTime: new Date(Date.now() - 60_000),
         endTime: new Date(Date.now() + 600_000), prizeDescription: 'Test prize', createdById: adminId,
       },
     });

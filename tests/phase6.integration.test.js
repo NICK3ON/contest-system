@@ -67,11 +67,11 @@ describeWithDatabase('Gemini contest search and question generation', () => {
       questions: [
         {
           questionText: '  Which runtime executes JavaScript outside a browser? ', type: 'SINGLE_SELECT',
-          topic: 'ignored', difficulty: 'ignored',
+          topic: 'ignored', difficulty: 'ADVANCED',
           options: [{ optionText: 'Node.js', isCorrect: true }, { optionText: 'CSS', isCorrect: false }],
         },
         {
-          questionText: 'Node.js uses an event loop.', type: 'TRUE_FALSE', topic: 'ignored', difficulty: 'ignored',
+          questionText: 'Node.js uses an event loop.', type: 'TRUE_FALSE', topic: 'ignored', difficulty: 'ADVANCED',
           explanation: 'The event loop coordinates asynchronous work.',
           options: [{ optionText: 'True', isCorrect: true }, { optionText: 'False', isCorrect: false }],
         },

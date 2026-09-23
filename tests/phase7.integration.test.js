@@ -50,7 +50,7 @@ describeWithDatabase('role access and deadline edge cases', () => {
         ...common, name: `Phase Seven Deadline ${unique}`, accessLevel: 'NORMAL',
         questions: {
           create: {
-            questionText: 'Is server time authoritative?', type: 'TRUE_FALSE', topic: 'Security', difficulty: 'EASY',
+            questionText: 'Is server time authoritative?', type: 'TRUE_FALSE', topic: 'Security', difficulty: 'BEGINNER',
             options: { create: [{ optionText: 'True', isCorrect: true }, { optionText: 'False', isCorrect: false }] },
           },
         },
@@ -79,6 +79,24 @@ describeWithDatabase('role access and deadline edge cases', () => {
     const vipJoin = await request(app).post(`/api/contests/${vipContest.id}/join`)
       .set('Authorization', `Bearer ${vipToken}`);
     expect(vipJoin.status).toBe(201);
+  });
+
+  it('rejects non-standard contest difficulty values', async () => {
+    const response = await request(app).post('/api/contests')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: `Phase Seven Invalid Difficulty ${unique}`,
+        description: 'Should fail validation',
+        accessLevel: 'NORMAL',
+        topic: 'Validation',
+        difficulty: 'EASY',
+        startTime: new Date(Date.now() + 60_000).toISOString(),
+        endTime: new Date(Date.now() + 120_000).toISOString(),
+        prizeDescription: 'None',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe('Validation failed');
   });
 
   it('keeps a saved answer valid while rejecting changes after the deadline', async () => {

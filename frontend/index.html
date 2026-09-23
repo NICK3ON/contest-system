@@ -78,7 +78,7 @@
               <label>Access level<select name="accessLevel"><option value="NORMAL">Normal</option><option value="VIP">VIP</option></select></label>
               <label class="wide">Description<textarea name="description" rows="3" maxlength="5000" required></textarea></label>
               <label>Topic<input name="topic" maxlength="100" placeholder="JavaScript" required></label>
-              <label>Difficulty<input name="difficulty" maxlength="50" placeholder="BEGINNER" required></label>
+              <label>Difficulty<select name="difficulty" required><option value="BEGINNER">Beginner</option><option value="INTERMEDIATE">Intermediate</option><option value="ADVANCED">Advanced</option></select></label>
               <label>Start time<input id="contest-start-time" name="startTime" type="datetime-local" required></label>
               <label>End time<input id="contest-end-time" name="endTime" type="datetime-local" required></label>
               <label class="wide">Prize description<input name="prizeDescription" maxlength="1000" placeholder="Certificate of achievement" required></label>
@@ -97,7 +97,7 @@
             <form id="question-form" class="admin-form" hidden>
               <label class="wide">Question text<textarea name="questionText" rows="3" maxlength="5000" required></textarea></label>
               <label>Type<select id="question-type" name="type"><option value="SINGLE_SELECT">Single select</option><option value="MULTI_SELECT">Multi select</option><option value="TRUE_FALSE">True / False</option></select></label>
-              <label>Difficulty<input id="question-difficulty" name="difficulty" maxlength="50" required></label>
+              <label>Difficulty<select id="question-difficulty" name="difficulty" required><option value="BEGINNER">Beginner</option><option value="INTERMEDIATE">Intermediate</option><option value="ADVANCED">Advanced</option></select></label>
               <label>Topic<input id="question-topic" name="topic" maxlength="100" required></label>
               <label>Correct option numbers<input id="correct-indexes" name="correctIndexes" placeholder="1, 3" required><span class="input-help">Use 1-based positions from the list below.</span></label>
               <label class="wide">Options, one per line<textarea id="question-options" name="optionsText" rows="5" placeholder="Option one&#10;Option two&#10;Option three" required></textarea></label>
@@ -116,7 +116,7 @@
             </div>
             <form id="question-generation-form" class="admin-form" hidden>
               <label>Topic override<input name="topic" maxlength="100" placeholder="Uses contest topic"></label>
-              <label>Difficulty override<input name="difficulty" maxlength="50" placeholder="Uses contest difficulty"></label>
+              <label>Difficulty override<select name="difficulty"><option value="">Use contest difficulty</option><option value="BEGINNER">Beginner</option><option value="INTERMEDIATE">Intermediate</option><option value="ADVANCED">Advanced</option></select></label>
               <label>Question count<input name="count" type="number" min="1" max="20" value="5" required></label>
               <fieldset class="type-picker">
                 <legend>Allowed question types</legend>
@@ -142,7 +142,7 @@
               <label>Access level<select name="accessLevel"><option value="NORMAL">Normal</option><option value="VIP">VIP</option></select></label>
               <label class="wide">Description<textarea name="description" rows="3" maxlength="5000" required></textarea></label>
               <label>Topic<input name="topic" maxlength="100" required></label>
-              <label>Difficulty<input name="difficulty" maxlength="50" required></label>
+              <label>Difficulty<select name="difficulty" required><option value="BEGINNER">Beginner</option><option value="INTERMEDIATE">Intermediate</option><option value="ADVANCED">Advanced</option></select></label>
               <label>Start time<input name="startTime" type="datetime-local" required></label>
               <label>End time<input name="endTime" type="datetime-local" required></label>
               <label class="wide">Prize description<input name="prizeDescription" maxlength="1000" required></label>

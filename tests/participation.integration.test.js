@@ -48,14 +48,14 @@ describeWithDatabase('participation flow', () => {
 
     const single = await request(app).post(`/api/contests/${contestId}/questions`)
       .set('Authorization', `Bearer ${adminToken}`).send({
-        questionText: 'Which option is correct?', type: 'SINGLE_SELECT', difficulty: 'EASY', topic: 'Testing',
+        questionText: 'Which option is correct?', type: 'SINGLE_SELECT', difficulty: 'BEGINNER', topic: 'Testing',
         options: [{ optionText: 'Correct', isCorrect: true }, { optionText: 'Wrong', isCorrect: false }],
       });
     expect(single.status).toBe(201);
 
     const multi = await request(app).post(`/api/contests/${contestId}/questions`)
       .set('Authorization', `Bearer ${adminToken}`).send({
-        questionText: 'Select both correct options.', type: 'MULTI_SELECT', difficulty: 'EASY', topic: 'Testing',
+        questionText: 'Select both correct options.', type: 'MULTI_SELECT', difficulty: 'BEGINNER', topic: 'Testing',
         options: [
           { optionText: 'First', isCorrect: true }, { optionText: 'Second', isCorrect: true },
           { optionText: 'Third', isCorrect: false },

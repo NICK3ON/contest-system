@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { difficultyLevels } = require('../constants/difficulty');
 
 const questionTypes = ['SINGLE_SELECT', 'MULTI_SELECT', 'TRUE_FALSE'];
 const optionSchema = z.object({
@@ -9,7 +10,7 @@ const optionSchema = z.object({
 const questionSchema = z.object({
   questionText: z.string().trim().min(1).max(5000),
   type: z.enum(questionTypes),
-  difficulty: z.string().trim().min(1).max(50),
+  difficulty: z.enum(difficultyLevels),
   topic: z.string().trim().min(1).max(100),
   explanation: z.string().trim().min(1).max(5000).optional(),
   options: z.array(optionSchema).min(2).max(10),

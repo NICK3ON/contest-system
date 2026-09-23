@@ -10,7 +10,7 @@
 
 ## Phase 3 - complete
 
-- Public contest discovery with derived status, admin contest/question management, question-type validation, participant access rules, and correctness-safe question responses
+- Public contest discovery with derived status, admin contest/question management, standardized difficulty and question-type validation, participant access rules, and correctness-safe question responses
 
 ## Phase 4 - complete
 
