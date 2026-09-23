@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const pinoHttp = require('pino-http');
 const logger = require('./config/logger');
 const { standardLimiter } = require('./middleware/rateLimit.middleware');
@@ -21,6 +22,9 @@ app.use(pinoHttp({
 }));
 app.use(express.json({ limit: '100kb' }));
 app.use(standardLimiter);
+
+// The optional demo UI is intentionally isolated from API routes and business logic.
+app.use('/demo', express.static(path.join(__dirname, '..', 'frontend')));
 
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);

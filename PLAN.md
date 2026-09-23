@@ -30,3 +30,8 @@
 - Production secret checks, sensitive log redaction, bounded request IDs, and safe database error mapping
 - Comprehensive unit, HTTP security, database integration, timing, access, and concurrency coverage
 - End-to-end Postman workflow, expanded development seed, and final setup/API/architecture documentation
+
+## Optional bonus - complete
+
+- Isolated dependency-free frontend demo for public and AI-assisted discovery, participant authentication, joining, answer saving/submission, history, prizes, and leaderboards
+- Role-specific admin console for contest creation/editing/deletion, manual and Gemini question generation, and prize finalization

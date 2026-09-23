@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Sign in to the Contest System.">
+    <title>Sign in | Contest System</title>
+    <link rel="stylesheet" href="../styles.css">
+  </head>
+  <body class="auth-page">
+    <header class="site-header">
+      <a class="brand" href="../" aria-label="Contest System home">Contest<span>System</span></a>
+      <a class="button secondary" href="../">Browse contests</a>
+    </header>
+
+    <main class="auth-page-shell">
+      <section class="auth-card" aria-labelledby="auth-title">
+        <div class="auth-intro">
+          <p class="eyebrow">Participant access</p>
+          <h1 id="auth-title">Welcome back</h1>
+          <p id="auth-description">Sign in to join eligible contests and keep your answers saved as you go.</p>
+        </div>
+        <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+        <form id="auth-form" class="stacked-auth-form">
+          <label id="name-field" hidden>Name<input id="name" name="name" autocomplete="name" maxlength="100"></label>
+          <label>Email<input id="email" name="email" type="email" autocomplete="email" required></label>
+          <label>Password<input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required></label>
+          <button id="auth-submit" class="button primary" type="submit">Sign in</button>
+          <button id="auth-mode" class="button text" type="button">Create an account</button>
+        </form>
+      </section>
+    </main>
+    <script src="./sign-in.js"></script>
+  </body>
+</html>

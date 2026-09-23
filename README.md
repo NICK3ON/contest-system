@@ -32,6 +32,10 @@ A JavaScript/Express and PostgreSQL backend for a timed contest platform. It sup
 
 The API defaults to `http://localhost:3000`; `GET /health` returns `{ "status": "ok" }`.
 
+### Optional demo frontend
+
+The assessment does not require a frontend, but a dependency-free demo is included as a bonus. It is isolated in [`frontend/`](frontend) and served by the API at `http://localhost:3000/demo/`; its separate sign-in/register screen is at `http://localhost:3000/demo/sign-in/`. It demonstrates public browsing, Gemini-assisted search, role-aware participation, answer saving and submission, history, prizes, leaderboards, and the main ADMIN workflows: contest creation/editing/deletion, manual and AI-generated questions, and prize finalization. It does not change API business logic.
+
 The development seed creates these local-only accounts, all with password `ChangeMe123!`:
 
 | Role | Email |
@@ -184,3 +188,4 @@ The collection regenerates its temporary email and contest times automatically, 
 - `.env.example` documents required configuration without secrets; `.env` is Git-ignored.
 - [`PLAN.md`](PLAN.md) summarizes completed phases.
 - [`AI_USAGE.md`](AI_USAGE.md) discloses how AI tooling was used in the project and application.
+- [`frontend/README.md`](frontend/README.md) describes the optional UI demo and its deliberately limited scope.

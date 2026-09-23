@@ -7,3 +7,5 @@ Gemini is the in-application provider for natural-language contest search and ad
 Important architectural and business decisions—including derived contest status, role access, server-generated answer timing, exact-set scoring, row locking, deterministic ranking, and idempotent prize awarding—were made deliberately in application and database code. They are not delegated to AI output.
 
 The final output was verified with automated unit, HTTP, security, and database-backed integration tests. AI-generated suggestions were not accepted as a substitute for validation or test evidence.
+
+The optional frontend demo follows the existing API contract and does not move business rules, authorization, scoring, or validation into the browser.

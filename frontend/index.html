@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A small demo UI for the Contest Participation System API.">
+    <title>Contest System</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Contest System home">Contest<span>System</span></a>
+      <div id="session-controls" class="session-controls"></div>
+    </header>
+
+    <main id="top" class="page-shell">
+      <section class="hero" aria-labelledby="page-title">
+        <p id="hero-eyebrow" class="eyebrow">Timed knowledge challenges</p>
+        <h1 id="page-title">Find a contest. Make every answer count.</h1>
+        <p id="hero-description">Browse public contests, join when eligible, and save your progress as you go.</p>
+      </section>
+
+      <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+
+      <nav id="primary-nav" class="primary-nav" aria-label="Demo sections">
+        <button class="nav-button" type="button" data-view-target="explore">Explore contests</button>
+        <button class="nav-button" type="button" data-view-target="admin" hidden>Admin workspace</button>
+        <button class="nav-button" type="button" data-view-target="account" hidden>My activity</button>
+        <button class="nav-button" type="button" data-view-target="leaderboard">Leaderboard</button>
+      </nav>
+
+      <section class="panel search-panel" aria-labelledby="search-title" data-view="explore">
+        <div>
+          <p class="eyebrow">Gemini-assisted discovery</p>
+          <h2 id="search-title">Describe the contest you want</h2>
+          <p class="muted">Try “active beginner JavaScript contests” or “VIP contests starting this week.”</p>
+        </div>
+        <form id="search-form" class="search-form">
+          <label class="sr-only" for="search-query">Contest search</label>
+          <input id="search-query" name="query" minlength="2" maxlength="500" placeholder="Search in natural language" required>
+          <button class="button primary" type="submit">Search with AI</button>
+          <button id="clear-search" class="button secondary" type="button">Show all</button>
+        </form>
+        <div id="search-summary" class="search-summary" aria-live="polite"></div>
+      </section>
+
+      <section id="admin-panel" class="panel admin-panel" aria-labelledby="admin-title" data-view="admin" hidden>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Administration</p>
+            <h2 id="admin-title">Admin workspace</h2>
+          </div>
+          <span class="muted">Choose a contest, then focus on one task</span>
+        </div>
+        <div class="admin-summary" aria-label="Contest overview">
+          <article><strong id="total-contests">0</strong><span>Total contests</span></article>
+          <article><strong id="active-contests">0</strong><span>Active now</span></article>
+          <article><strong id="vip-contests">0</strong><span>VIP access</span></article>
+        </div>
+        <div class="admin-control-bar">
+          <label for="admin-contest-select">Contest to manage</label>
+          <select id="admin-contest-select">
+            <option value="">Select a contest</option>
+          </select>
+        </div>
+        <nav class="admin-task-nav" aria-label="Admin tasks">
+          <button class="admin-task-button" type="button" data-admin-task-target="create">Create new</button>
+          <button class="admin-task-button" type="button" data-admin-task-target="manage">Edit &amp; finalize</button>
+          <button class="admin-task-button" type="button" data-admin-task-target="manual">Manual question</button>
+          <button class="admin-task-button" type="button" data-admin-task-target="ai">Generate with AI</button>
+        </nav>
+        <div class="admin-workspace-grid">
+          <section class="admin-block" aria-labelledby="create-contest-title" data-admin-task="create">
+            <p class="eyebrow">New contest</p>
+            <h3 id="create-contest-title">Create a contest</h3>
+            <form id="contest-form" class="admin-form">
+              <label>Contest name<input name="name" maxlength="200" required></label>
+              <label>Access level<select name="accessLevel"><option value="NORMAL">Normal</option><option value="VIP">VIP</option></select></label>
+              <label class="wide">Description<textarea name="description" rows="3" maxlength="5000" required></textarea></label>
+              <label>Topic<input name="topic" maxlength="100" placeholder="JavaScript" required></label>
+              <label>Difficulty<input name="difficulty" maxlength="50" placeholder="BEGINNER" required></label>
+              <label>Start time<input id="contest-start-time" name="startTime" type="datetime-local" required></label>
+              <label>End time<input id="contest-end-time" name="endTime" type="datetime-local" required></label>
+              <label class="wide">Prize description<input name="prizeDescription" maxlength="1000" placeholder="Certificate of achievement" required></label>
+              <div class="wide form-actions"><button class="button primary" type="submit">Create contest</button></div>
+            </form>
+          </section>
+
+          <section class="admin-block" aria-labelledby="question-builder-title" data-admin-task="manual" hidden>
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">Question builder</p>
+                <h3 id="question-builder-title">Add a manual question</h3>
+              </div>
+              <span id="question-target" class="muted">Select a contest first</span>
+            </div>
+            <form id="question-form" class="admin-form" hidden>
+              <label class="wide">Question text<textarea name="questionText" rows="3" maxlength="5000" required></textarea></label>
+              <label>Type<select id="question-type" name="type"><option value="SINGLE_SELECT">Single select</option><option value="MULTI_SELECT">Multi select</option><option value="TRUE_FALSE">True / False</option></select></label>
+              <label>Difficulty<input id="question-difficulty" name="difficulty" maxlength="50" required></label>
+              <label>Topic<input id="question-topic" name="topic" maxlength="100" required></label>
+              <label>Correct option numbers<input id="correct-indexes" name="correctIndexes" placeholder="1, 3" required><span class="input-help">Use 1-based positions from the list below.</span></label>
+              <label class="wide">Options, one per line<textarea id="question-options" name="optionsText" rows="5" placeholder="Option one&#10;Option two&#10;Option three" required></textarea></label>
+              <label class="wide">Explanation (optional)<textarea name="explanation" rows="2" maxlength="5000"></textarea></label>
+              <div class="wide form-actions"><button class="button primary" type="submit">Add question</button></div>
+            </form>
+          </section>
+
+          <section class="admin-block" aria-labelledby="ai-builder-title" data-admin-task="ai" hidden>
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">Gemini workflow</p>
+                <h3 id="ai-builder-title">Generate questions with AI</h3>
+              </div>
+              <span id="ai-question-target" class="muted">Select a contest first</span>
+            </div>
+            <form id="question-generation-form" class="admin-form" hidden>
+              <label>Topic override<input name="topic" maxlength="100" placeholder="Uses contest topic"></label>
+              <label>Difficulty override<input name="difficulty" maxlength="50" placeholder="Uses contest difficulty"></label>
+              <label>Question count<input name="count" type="number" min="1" max="20" value="5" required></label>
+              <fieldset class="type-picker">
+                <legend>Allowed question types</legend>
+                <label><input type="checkbox" name="questionTypes" value="SINGLE_SELECT" checked> Single select</label>
+                <label><input type="checkbox" name="questionTypes" value="MULTI_SELECT" checked> Multi select</label>
+                <label><input type="checkbox" name="questionTypes" value="TRUE_FALSE" checked> True / False</label>
+              </fieldset>
+              <div class="wide form-actions"><button id="generate-questions" class="button primary" type="submit">Generate questions</button></div>
+            </form>
+            <div id="generated-question-results" class="generated-results" aria-live="polite"></div>
+          </section>
+
+          <section class="admin-block" aria-labelledby="manage-contest-title" data-admin-task="manage" hidden>
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">Selected contest</p>
+                <h3 id="manage-contest-title">Edit, finalize, or delete</h3>
+              </div>
+              <span id="management-target" class="muted">Select a contest first</span>
+            </div>
+            <form id="contest-edit-form" class="admin-form" hidden>
+              <label>Contest name<input name="name" maxlength="200" required></label>
+              <label>Access level<select name="accessLevel"><option value="NORMAL">Normal</option><option value="VIP">VIP</option></select></label>
+              <label class="wide">Description<textarea name="description" rows="3" maxlength="5000" required></textarea></label>
+              <label>Topic<input name="topic" maxlength="100" required></label>
+              <label>Difficulty<input name="difficulty" maxlength="50" required></label>
+              <label>Start time<input name="startTime" type="datetime-local" required></label>
+              <label>End time<input name="endTime" type="datetime-local" required></label>
+              <label class="wide">Prize description<input name="prizeDescription" maxlength="1000" required></label>
+              <div class="wide management-actions">
+                <button class="button primary" type="submit">Save changes</button>
+                <button id="finalize-contest" class="button secondary" type="button">Finalize prize</button>
+                <button id="delete-contest" class="button danger" type="button">Delete contest</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="content-grid" aria-label="Contest browser" data-view="explore">
+        <div class="panel contest-panel">
+          <div class="panel-heading">
+            <div>
+              <p id="catalogue-eyebrow" class="eyebrow">Open catalogue</p>
+              <h2 id="catalogue-title">Contests</h2>
+            </div>
+            <button id="refresh-contests" class="button secondary" type="button">Refresh</button>
+          </div>
+          <div id="contest-list" class="contest-list" aria-live="polite"></div>
+        </div>
+
+        <aside id="contest-detail" class="panel detail-panel" aria-live="polite">
+          <div class="empty-state">
+            <p class="eyebrow">Select a contest</p>
+            <h2>Your contest details will appear here.</h2>
+            <p>Choose a contest to review its timing, access level, and prize.</p>
+          </div>
+        </aside>
+      </section>
+
+      <section id="participant-panel" class="panel participant-panel" aria-labelledby="activity-title" data-view="account" hidden>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Your account</p>
+            <h2 id="activity-title">Participation history and prizes</h2>
+          </div>
+          <button id="refresh-account" class="button secondary" type="button">Refresh</button>
+        </div>
+        <div class="account-grid">
+          <section aria-labelledby="history-title">
+            <h3 id="history-title">Contest history</h3>
+            <div id="participation-history" class="account-list"></div>
+          </section>
+          <section aria-labelledby="prizes-title">
+            <h3 id="prizes-title">Prizes won</h3>
+            <div id="prize-list" class="account-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel leaderboard-panel" aria-labelledby="leaderboard-title" data-view="leaderboard" hidden>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Across all submitted contests</p>
+            <h2 id="leaderboard-title">Global leaderboard</h2>
+          </div>
+          <button id="refresh-leaderboard" class="button secondary" type="button">Refresh</button>
+        </div>
+        <div id="global-leaderboard" class="leaderboard-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="question-template">
+      <article class="question-card">
+        <fieldset>
+          <legend></legend>
+          <div class="option-list"></div>
+        </fieldset>
+        <div class="question-actions"><button class="button secondary save-answer" type="button">Save answer</button></div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
